@@ -6,3 +6,10 @@ export const SignUpRequestSchema = z.object({
     password: z.string().min(4).regex(/^(?=.*[A-Z])(?=.*\d)/, "Password must contain at least one uppercase letter and one number")
 })
 export type SignUpRequest = z.infer<typeof SignUpRequestSchema>;
+
+export const LoginRequestSchema = z.object({
+    email: z.email("Invalid email address"),
+    password: z.string().min(4).regex(/^(?=.*[A-Z])(?=.*\d)/, "Password must contain at least one uppercase letter and one number")
+})
+
+export type LoginRequest = z.infer<typeof LoginRequestSchema>;

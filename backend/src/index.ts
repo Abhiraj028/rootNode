@@ -1,8 +1,11 @@
 import express, { Express, Request, Response } from "express";
-import { Client, DatabaseError } from "pg";
+import { Client, DatabaseError, Pool } from "pg";
 import bcrypt from "bcrypt";
-import { SignUpRequest, SignUpRequestSchema } from "./authInterfaces";
+import { SignUpRequest, SignUpRequestSchema, LoginRequest, LoginRequestSchema } from "./authInterfaces";
 import dotenv from "dotenv";
+import jwt from "jsonwebtoken";
+import crypto from "crypto";
+
 dotenv.config();
 
 const dbString = process.env.PG_CONNECTION_STRING;
@@ -40,8 +43,48 @@ app.post("/api/v1/signup",async (req: Request<{}, {}, SignUpRequest>, res: Respo
     }
 });
 
-app.post("/api/v1/login",(req: Request, res: Response) => {
-    console.log("Atoooo");
+app.post("/api/v1/login",async (req: Request<{}, {}, LoginRequest>, res: Response) => {
+    const parsedBody = LoginRequestSchema.safeParse(req.body);
+    if(!parsedBody.success){
+        console.log("Validation failed for login request", parsedBody.error);
+        return res.status(400).json({message: parsedBody.error.message});
+    }
+
+    const userCheck = await client.query("select * from users where email = $1", [parsedBody.data.email.toLowerCase()]);
+    if(userCheck.rowCount == 0){
+        console.log("No user found with email", parsedBody.data.email);
+        return res.status(400).json({message: "Invalid credentials entered" });
+    }
+
+    const user = userCheck.rows[0];
+    const passwordCheck = await bcrypt.compare(parsedBody.data.password, user.password_hash);
+    if(!passwordCheck){
+        console.log("password mismatch for user: ", parsedBody.data.email);
+        return res.status(400).json({message: "Invalid credentials entered"});
+    }
+
+    const accessToken = jwt.sign({sub: user.id as string} , process.env.JWT_SECRET!, {expiresIn: "15m"});
+    const sampleRefresh = crypto.randomBytes(64).toString("hex");
+    const refreshToken = crypto.createHash("sha256").update(sampleRefresh).digest("hex");
+    console.log("User has logged in successfully", user);
+
+    try{
+        const tokenSet = await client.query("insert into token_table(user_id, token_hash, expires_at) values($1,$2,$3) returning id",[user.id,refreshToken, new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)]);
+        console.log("Token stored for the user with token id: ", tokenSet.rows[0].id);
+    }catch(err){
+        console.error("Error storing refresh token for user", err);
+        return res.status(500).json({message: "Internal Server Error"});
+    }
+
+    res.cookie("refreshToken", sampleRefresh, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000 
+    });
+
+    return res.status(200).json({message: "logged in successfully", token: accessToken});
+
 });
 
 
