@@ -51,3 +51,12 @@ create table documents(
     deleted_at timestamptz,
     unique(workspace_id, parent_id, name)
 );
+
+create table token_table(
+    id bigserial primary key,
+    user_id bigint references users(id) on delete cascade,
+    token_hash text not null unique,
+    created_at timestamptz not null default now(),
+    expires_at timestamptz not null,
+    revoked_at timestamptz
+);
