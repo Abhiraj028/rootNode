@@ -6,11 +6,13 @@ import { SignUpRequest, SignUpRequestSchema, LoginRequest, LoginRequestSchema } 
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import cookieParser from "cookie-parser";
 
 dotenv.config();
 const app: Express = express();
 
 app.use(express.json());
+app.use(cookieParser());
 
 app.post("/api/v1/signup",async (req: Request<{}, {}, SignUpRequest>, res: Response) => {
     const parseResult = SignUpRequestSchema.safeParse(req.body);
@@ -85,16 +87,22 @@ app.post("/api/v1/refresh", async(req:Request, res:Response) => {
         return res.status(401).json({message: "Unauthorized"});
     }
     const hashedToken = crypto.createHash("sha256").update(fetchedToken).digest("hex");
+    const queryClient = await poolClient.connect();
+
     try{
-        const tokenCheck = await poolClient.query("select * from token_table where token_hash = $1 and expires_at > now()",[hashedToken]);
+        await queryClient.query("begin");
+
+        const tokenCheck = await queryClient.query("select * from token_table where token_hash = $1 and expires_at > now() for update",[hashedToken]);
         if(tokenCheck.rowCount == 0){
             console.log("No matching refresh token found in the database");
+            await queryClient.query("rollback");
             return res.status(401).json({message: "Unauthorized, login again."});
         }
         const userFetched = tokenCheck.rows[0];
         if(userFetched.revoked_at != null){
             console.log("Possible inflitration detected. Revoked Refresh Token found for user id: ", userFetched.user_id);
-            await poolClient.query("update token_table set revoked_at = now() where user_id = $1",[userFetched.user_id]);
+            await queryClient.query("update token_table set revoked_at = now() where user_id = $1",[userFetched.user_id]);
+            await queryClient.query("commit");
             return res.status(401).json({message: "Unauthorized"});
         }
 
@@ -102,10 +110,11 @@ app.post("/api/v1/refresh", async(req:Request, res:Response) => {
         const newSampleRefresh = crypto.randomBytes(64).toString("hex");
         const newRefreshToken = crypto.createHash("sha256").update(newSampleRefresh).digest("hex");
 
-        await poolClient.query("begin");
-        await poolClient.query("update token_table set revoked_at = now() where id = $1 returning user_id",[userFetched.id]);
-        const insertedUser = await poolClient.query("insert into token_table(user_id, token_hash, expires_at) values($1,$2,$3) returning user_id",[userFetched.user_id, newRefreshToken, new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)]);
-        await poolClient.query("commit");
+        await queryClient.query("update token_table set revoked_at = now() where id = $1 returning user_id",[userFetched.id]);
+        const insertedUser = await queryClient.query("insert into token_table(user_id, token_hash, expires_at) values($1,$2,$3) returning user_id",[userFetched.user_id, newRefreshToken, new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)]);
+        
+        await queryClient.query("commit");
+
         console.log("old token revoked and new refresh token stored for the user id: ", insertedUser.rows[0].user_id);
 
         res.cookie("refreshToken", newSampleRefresh, {
@@ -118,8 +127,12 @@ app.post("/api/v1/refresh", async(req:Request, res:Response) => {
         return res.status(200).json({message: "Token refreshed successfully", token: newAccessToken});
     
     }catch(err){
+        await queryClient.query("rollback");
         console.error("Error during token refresh", err);
         return res.status(500).json({message: "Internal Server Error"});
+    }
+    finally{
+        queryClient.release();
     }
 });
 
