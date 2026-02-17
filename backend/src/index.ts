@@ -44,49 +44,92 @@ app.post("/api/v1/signup",async (req: Request<{}, {}, SignUpRequest>, res: Respo
 });
 
 app.post("/api/v1/login",async (req: Request<{}, {}, LoginRequest>, res: Response) => {
-    const parsedBody = LoginRequestSchema.safeParse(req.body);
-    if(!parsedBody.success){
-        console.log("Validation failed for login request", parsedBody.error);
-        return res.status(400).json({message: parsedBody.error.message});
-    }
-
-    const userCheck = await client.query("select * from users where email = $1", [parsedBody.data.email.toLowerCase()]);
-    if(userCheck.rowCount == 0){
-        console.log("No user found with email", parsedBody.data.email);
-        return res.status(400).json({message: "Invalid credentials entered" });
-    }
-
-    const user = userCheck.rows[0];
-    const passwordCheck = await bcrypt.compare(parsedBody.data.password, user.password_hash);
-    if(!passwordCheck){
-        console.log("password mismatch for user: ", parsedBody.data.email);
-        return res.status(400).json({message: "Invalid credentials entered"});
-    }
-
-    const accessToken = jwt.sign({sub: user.id as string} , process.env.JWT_SECRET!, {expiresIn: "15m"});
-    const sampleRefresh = crypto.randomBytes(64).toString("hex");
-    const refreshToken = crypto.createHash("sha256").update(sampleRefresh).digest("hex");
-    console.log("User has logged in successfully", user);
-
     try{
+        const parsedBody = LoginRequestSchema.safeParse(req.body);
+        if(!parsedBody.success){
+            console.log("Validation failed for login request", parsedBody.error);
+            return res.status(400).json({message: parsedBody.error.message});
+        }
+
+        const userCheck = await client.query("select * from users where email = $1", [parsedBody.data.email.toLowerCase()]);
+        if(userCheck.rowCount == 0){
+            console.log("No user found with email", parsedBody.data.email);
+            return res.status(400).json({message: "Invalid credentials entered" });
+        }
+
+        const user = userCheck.rows[0];
+        const passwordCheck = await bcrypt.compare(parsedBody.data.password, user.password_hash);
+        if(!passwordCheck){
+            console.log("password mismatch for user: ", parsedBody.data.email);
+            return res.status(400).json({message: "Invalid credentials entered"});
+        }
+
+        const accessToken = jwt.sign({sub: user.id as string} , process.env.JWT_SECRET!, {expiresIn: "15m"});
+        const sampleRefresh = crypto.randomBytes(64).toString("hex");
+        const refreshToken = crypto.createHash("sha256").update(sampleRefresh).digest("hex");
+        console.log("User has logged in successfully", user);
+
         const tokenSet = await client.query("insert into token_table(user_id, token_hash, expires_at) values($1,$2,$3) returning id",[user.id,refreshToken, new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)]);
         console.log("Token stored for the user with token id: ", tokenSet.rows[0].id);
+
+        res.cookie("refreshToken", sampleRefresh, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            maxAge: 7 * 24 * 60 * 60 * 1000 
+        });
+
+        return res.status(200).json({message: "logged in successfully", token: accessToken});
     }catch(err){
-        console.error("Error storing refresh token for user", err);
+        console.log("Error in login route",err);
         return res.status(500).json({message: "Internal Server Error"});
     }
-
-    res.cookie("refreshToken", sampleRefresh, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 7 * 24 * 60 * 60 * 1000 
-    });
-
-    return res.status(200).json({message: "logged in successfully", token: accessToken});
-
 });
 
+app.post("/api/v1/refresh", async(req:Request, res:Response) => {
+    const fetchedToken = req.cookies.refreshToken;
+    if(!fetchedToken){
+        console.log("No refresh token was provided in the request");
+        return res.status(401).json({message: "Unauthorized"});
+    }
+    const hashedToken = crypto.createHash("sha256").update(fetchedToken).digest("hex");
+    try{
+        const tokenCheck = await client.query("select * from token_table where token_hash = $1 and expires_at > now()",[hashedToken]);
+        if(tokenCheck.rowCount == 0){
+            console.log("No matching refresh token found in the database");
+            return res.status(401).json({message: "Unauthorized, login again."});
+        }
+        const userFetched = tokenCheck.rows[0];
+        if(userFetched.revoked_at != null){
+            console.log("Possible inflitration detected. Revoked Refresh Token found for user id: ", userFetched.user_id);
+            await client.query("update token_table set revoked_at = now() where user_id = $1",[userFetched.user_id]);
+            return res.status(401).json({message: "Unauthorized"});
+        }
+
+        const newAccessToken = jwt.sign({sub: userFetched.user_id as string}, process.env.JWT_SECRET!, {expiresIn: "15m"});
+        const newSampleRefresh = crypto.randomBytes(64).toString("hex");
+        const newRefreshToken = crypto.createHash("sha256").update(newSampleRefresh).digest("hex");
+
+        await client.query("begin");
+        await client.query("update token_table set revoked_at = now() where id = $1 returning user_id",[userFetched.id]);
+        const insertedUser = await client.query("insert into token_table(user_id, token_hash, expires_at) values($1,$2,$3) returning user_id",[userFetched.user_id, newRefreshToken, new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)]);
+        await client.query("commit");
+        console.log("old token revoked and new refresh token stored for the user id: ", insertedUser.rows[0].user_id);
+
+        res.cookie("refreshToken", newSampleRefresh, {
+            httpOnly: true,
+            secure : process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        });
+
+        return res.status(200).json({message: "Token refreshed successfully", token: newAccessToken});
+    
+    }catch(err){
+        console.error("Error during token refresh", err);
+        return res.status(500).json({message: "Internal Server Error"});
+    }
+});
 
 
 
