@@ -136,7 +136,31 @@ app.post("/api/v1/refresh", async(req:Request, res:Response) => {
     }
 });
 
+app.delete("/api/v1/logout", async(req: Request, res:Response) => {
+    const fetchedToken = req.cookies.refreshToken;
+    if(!fetchedToken){
+        console.log("No refresh token in the logout request");
+        return res.status(400).json({message: "Bad request"});
+    }
 
+    const hashedToken = crypto.createHash("sha256").update(fetchedToken).digest("hex");
+    try{
+        const result = await poolClient.query("update token_table set revoked_at = now() where token_hash = $1 returning user_id",[hashedToken]);
+        res.clearCookie("refreshToken");
+
+        if(result.rowCount == 0){
+            console.log("No matching token found in the db for logout");
+        }else{
+            const userIdFetched = result.rows[0].user_id;
+            console.log("User: ",userIdFetched," has logged out successfully");
+        }
+
+        return res.status(200).json({message: "Logged out successfully"});
+    }catch(err){
+        console.log("Error during logout request", err);
+        return res.status(500).json({message: "Internal Server Error"});
+    }
+});
 
 
 
