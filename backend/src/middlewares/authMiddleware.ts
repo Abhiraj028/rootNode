@@ -16,7 +16,7 @@ export const AuthMiddleware = (req:Request,res:Response, next: NextFunction) => 
             sub: string
         };
         req.user = {
-            sub: verifyToken.sub
+            sub: Number(verifyToken.sub)
         }
         next();
     }catch(err){
