@@ -12,7 +12,7 @@ create table users(
 
 
 
-create table organisations(
+create table organizations(
     id bigserial primary key,
     name varchar(255) not null,
     slug varchar(25) not null unique,
@@ -30,7 +30,7 @@ create type org_role as enum ('admin','lead','member');
 
 create table memberships(
     id bigserial primary key,
-    org_id bigint not null references organisations(id) on delete restrict,
+    org_id bigint not null references organizations(id) on delete restrict,
     user_id bigint not null references users(id) on delete restrict,
     role org_role not null,
     created_at timestamptz not null default now(),
@@ -47,7 +47,7 @@ create index idx_memberships_org_id on memberships(org_id);
 
 create table workspaces(
     id bigserial primary key,
-    org_id bigint not null references organisations(id) on delete restrict,
+    org_id bigint not null references organizations(id) on delete restrict,
     name varchar(255) not null,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now(),
