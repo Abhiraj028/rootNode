@@ -14,7 +14,7 @@ router.post("/create", AuthMiddleware , async (req:Request<{},{}, createOrgInter
         console.log("Validation failed for create organization request ", parsedResult.error.message);
         return res.status(400).json({message: "Invalid inputs", error: parsedResult.error.message});
     }
-    const userId = req.user!.sub;
+    const userId = req.user!.userId;
     const {name, slug} = parsedResult.data;
     console.log("organization creation request valdiated for user: ",userId, " with org name: ", name, " and slug: ", slug);
     
@@ -28,7 +28,7 @@ router.post("/create", AuthMiddleware , async (req:Request<{},{}, createOrgInter
         
         await localClient.query("commit");
 
-        return res.status(201).json({message: "Organization created successfully!", organization: {id: orgId, name, slug}});
+        return res.status(201).json({message: "Organization created successfully!", data: {id: orgId, name, slug}});
     
     }catch(err){
         if(err instanceof DatabaseError && err.code === "23505"){
@@ -44,3 +44,5 @@ router.post("/create", AuthMiddleware , async (req:Request<{},{}, createOrgInter
         localClient.release();
     }
 });
+
+export default router;
