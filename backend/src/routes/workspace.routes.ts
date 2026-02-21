@@ -3,10 +3,12 @@ import { poolClient } from "../db";
 import { DatabaseError } from "pg";
 import { workspaceCreationInterface, workspaceCreationSchema } from "../interfaces/workspaceInterfaces";
 import crypto from "crypto";
+import { orgMiddleware } from "../middlewares/orgMiddleware";
+import { AuthMiddleware } from "../middlewares/authMiddleware";
 
 const router = Router();
 
-router.post("/create", async(req: Request<{},{}, workspaceCreationInterface>, res: Response) => {
+router.post("/create", AuthMiddleware ,orgMiddleware , async(req: Request<{},{}, workspaceCreationInterface>, res: Response) => {
     if(!req.user){
         return res.status(401).json({message: "Unauthorised"});
     }
