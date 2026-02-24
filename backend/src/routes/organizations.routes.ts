@@ -23,7 +23,7 @@ router.get("/", AuthMiddleware, async(req: Request, res: Response) => {
     }
 });
 
-router.post("/create", AuthMiddleware , async (req:Request<{},{}, createOrgInterface>, res:Response) => {
+router.post("/", AuthMiddleware , async (req:Request<{},{}, createOrgInterface>, res:Response) => {
     if(!req.user || !req.user.userId){
         return res.status(401).json({message: "Unauthorised"});
     }
@@ -63,7 +63,7 @@ router.post("/create", AuthMiddleware , async (req:Request<{},{}, createOrgInter
     }
 });
 
-router.delete("/delete", AuthMiddleware, orgMiddleware, async(req: Request, res: Response) => {
+router.delete("/", AuthMiddleware, orgMiddleware, async(req: Request, res: Response) => {
     try{
         if(!req.user || !req.user.userId || !req.user.orgId || !req.user.orgRole){
             return res.status(401).json({message: "Unauthorised"});

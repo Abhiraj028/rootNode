@@ -10,13 +10,13 @@ import { number } from "zod";
 
 const router = Router();
 
-router.post("/create", AuthMiddleware ,orgMiddleware , async(req: Request<{},{}, workspaceCreationInterface>, res: Response) => {
+router.post("/", AuthMiddleware ,orgMiddleware , async(req: Request<{},{}, workspaceCreationInterface>, res: Response) => {
     if(!req.user){
         return res.status(401).json({message: "Unauthorised"});
     }
     const {userId, orgId, orgRole} = req.user;
 
-    if(orgRole != "admin"){
+    if(orgRole != Roles.ADMIN){
         console.log("userId: "+userId+" attempted to create workspace without admin access");
         return res.status(403).json({message: "Forbidden access"});
     }
