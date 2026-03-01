@@ -1,18 +1,15 @@
-import {Request, Response, Router} from "express";
-import { poolClient } from "../db";
-import { SignUpRequest, SignUpRequestSchema, LoginRequest, LoginRequestSchema } from "../interfaces/authInterfaces";
+import { Request, Response } from "express";
+import { poolClient } from "../../db";
+import { SignUpRequest, SignUpRequestSchema, LoginRequest, LoginRequestSchema } from "./authInterfaces";
 import { DatabaseError } from "pg";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import { AuthMiddleware } from "../middlewares/authMiddleware";
-
 
 dotenv.config();
-const router = Router();
 
-router.post("/signup",async (req: Request<{}, {}, SignUpRequest>, res: Response) => {
+export const signUp = async (req: Request<{}, {}, SignUpRequest>, res: Response) => {
     const parseResult = SignUpRequestSchema.safeParse(req.body);
     if(!parseResult.success){
         console.log("Validation failed for signup request", parseResult.error);
@@ -32,10 +29,10 @@ router.post("/signup",async (req: Request<{}, {}, SignUpRequest>, res: Response)
         }
         console.error("Error creating user", err);
         return res.status(500).json({message: "Internal Server Error"});
-    }
-});
+    }   
+}
 
-router.post("/login",async (req: Request<{}, {}, LoginRequest>, res: Response) => {
+export const logIn = async (req: Request<{}, {}, LoginRequest>, res: Response) => {
     try{
         const parsedBody = LoginRequestSchema.safeParse(req.body);
         if(!parsedBody.success){
@@ -76,9 +73,9 @@ router.post("/login",async (req: Request<{}, {}, LoginRequest>, res: Response) =
         console.log("Error in login route",err);
         return res.status(500).json({message: "Internal Server Error"});
     }
-});
+}
 
-router.post("/refresh", async(req:Request, res:Response) => {
+export const refreshCall = async(req:Request, res:Response) => {
     const fetchedToken = req.cookies.refreshToken;
     if(!fetchedToken){
         console.log("No refresh token was provided in the request");
@@ -132,9 +129,9 @@ router.post("/refresh", async(req:Request, res:Response) => {
     finally{
         queryClient.release();
     }
-});
+}
 
-router.delete("/logout", async(req: Request, res:Response) => {
+export const logOut = async(req: Request, res:Response) => {
     const fetchedToken = req.cookies.refreshToken;
     if(!fetchedToken){
         console.log("No refresh token in the logout request");
@@ -157,7 +154,5 @@ router.delete("/logout", async(req: Request, res:Response) => {
     }catch(err){
         console.log("Error during logout request", err);
         return res.status(500).json({message: "Internal Server Error"});
-    }
-});
-
-export default router;
+    }    
+}

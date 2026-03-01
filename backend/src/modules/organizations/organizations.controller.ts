@@ -1,29 +1,10 @@
-import { Router, Request, Response } from "express";
-import { AuthMiddleware } from "../middlewares/authMiddleware";
-import { createOrgInterface, createOrgSchema, updateOrgInterface, updateOrgSchema } from "../interfaces/orgInterfaces";
-import { poolClient } from "../db";
+import { Request, Response } from "express";
+import { createOrgInterface, createOrgSchema, updateOrgInterface, updateOrgSchema } from "./orgInterfaces";
+import { poolClient } from "../../db";
 import { DatabaseError } from "pg";
-import Roles from "../root";
-import { orgMiddleware } from "../middlewares/orgMiddleware";
+import Roles from "../../enum";
 
-
-const router = Router();
-
-router.get("/", AuthMiddleware, async(req: Request, res: Response) => {
-    if(!req.user || !req.user.userId){
-        return res.status(401).json({message: "Unauthorised"});
-    }
-    const {userId} = req.user;
-    try{
-        const resQuery = await poolClient.query("select o.id, o.name, o.slug, m.role from organizations o join memberships m on o.id = m.org_id where m.user_id = $1 and m.deleted_at is null and o.deleted_at is null",[userId]);
-        return res.status(200).json({message: "Organizations fetched successfully", data: resQuery.rows});
-    }catch(err){
-        console.log("Error occured in fetching organizations for user: ", userId, " error: ", err);
-        return res.status(500).json({message: "Internal server error"});
-    }
-});
-
-router.post("/", AuthMiddleware , async (req:Request<{},{}, createOrgInterface>, res:Response) => {
+export const createOrganization = async(req:Request<{},{}, createOrgInterface>, res:Response) => {
     if(!req.user || !req.user.userId){
         return res.status(401).json({message: "Unauthorised"});
     }
@@ -61,9 +42,23 @@ router.post("/", AuthMiddleware , async (req:Request<{},{}, createOrgInterface>,
     }finally{
         localClient.release();
     }
-});
+}
 
-router.delete("/", AuthMiddleware, orgMiddleware, async(req: Request, res: Response) => {
+export const fetchOrganization = async(req: Request, res: Response) => {
+    if(!req.user || !req.user.userId){
+        return res.status(401).json({message: "Unauthorised"});
+    }
+    const {userId} = req.user;
+    try{
+        const resQuery = await poolClient.query("select o.id, o.name, o.slug, m.role from organizations o join memberships m on o.id = m.org_id where m.user_id = $1 and m.deleted_at is null and o.deleted_at is null",[userId]);
+        return res.status(200).json({message: "Organizations fetched successfully", data: resQuery.rows});
+    }catch(err){
+        console.log("Error occured in fetching organizations for user: ", userId, " error: ", err);
+        return res.status(500).json({message: "Internal server error"});
+    }    
+}
+
+export const deleteOrganization = async(req: Request, res: Response) => {
     try{
         if(!req.user || !req.user.userId || !req.user.orgId || !req.user.orgRole){
             return res.status(401).json({message: "Unauthorised"});
@@ -84,10 +79,10 @@ router.delete("/", AuthMiddleware, orgMiddleware, async(req: Request, res: Respo
     }catch(err){
         console.log("Error occured in organization deletion", err);
         return res.status(500).json({message: "Internal server error"});
-    }
-});
+    }    
+}
 
-router.patch("/update", AuthMiddleware, orgMiddleware, async(req: Request<{}, {}, updateOrgInterface>, res:Response) => {
+export const updateOrganization = async(req: Request<{}, {}, updateOrgInterface>, res:Response) => {
     if(!req.user || !req.user.userId || !req.user.orgId || !req.user.orgRole){
         return res.status(401).json({message: "Unauthorised"});
     }
@@ -131,7 +126,4 @@ router.patch("/update", AuthMiddleware, orgMiddleware, async(req: Request<{}, {}
         console.log("Error occured in organization update", err);
         return res.status(500).json({message: "Internal server error"});
     }
-});
-
-
-export default router;
+}

@@ -1,16 +1,13 @@
-import { Router, Request, Response } from "express";
-import { poolClient } from "../db";
+import { Request, Response } from "express";
+import { poolClient } from "../../db";
 import { DatabaseError } from "pg";
-import { workspaceCreationInterface, workspaceCreationSchema, workspaceDeleteParamsInterface, workspaceUpdateInterface, workspaceUpdateParamsInterface, workspaceUpdateSchema} from "../interfaces/workspaceInterfaces";
+import { workspaceCreationInterface, workspaceCreationSchema, workspaceDeleteParamsInterface, workspaceUpdateInterface, workspaceUpdateParamsInterface, workspaceUpdateSchema} from "./workspaceInterfaces";
 import crypto from "crypto";
-import { orgMiddleware } from "../middlewares/orgMiddleware";
-import { AuthMiddleware } from "../middlewares/authMiddleware";
-import Roles from "../root";
-import { number } from "zod";
+import { orgMiddleware } from "../../middlewares/orgMiddleware";
+import { AuthMiddleware } from "../../middlewares/authMiddleware";
+import Roles from "../../enum"; 
 
-const router = Router();
-
-router.post("/", AuthMiddleware ,orgMiddleware , async(req: Request<{},{}, workspaceCreationInterface>, res: Response) => {
+export const createWorkspace = async(req: Request<{},{}, workspaceCreationInterface>, res: Response) => {
     if(!req.user){
         return res.status(401).json({message: "Unauthorised"});
     }
@@ -44,10 +41,10 @@ router.post("/", AuthMiddleware ,orgMiddleware , async(req: Request<{},{}, works
         }
         console.log("Error creating workspace with name: "+workspaceName+" for orgId: "+orgId+" by userId: "+userId, err);
         return res.status(500).json({message: "Internal server error"});
-    }
-});
+    }    
+}
 
-router.get("/", AuthMiddleware, orgMiddleware, async(req: Request<workspaceDeleteParamsInterface>, res: Response) => {
+export const fetchWorkspace = async(req: Request<workspaceDeleteParamsInterface>, res: Response) => {
     if(!req.user || !req.user.orgId){
         return res.status(401).json({message: "Unauthorised"});
     }
@@ -58,10 +55,10 @@ router.get("/", AuthMiddleware, orgMiddleware, async(req: Request<workspaceDelet
     }catch(err){
         console.log("Error fetching workspaces for orgId: "+orgId, err);
         return res.status(500).json({message: "Internal server error"});
-    }
-});
+    }  
+}
 
-router.delete("/:workspaceId", AuthMiddleware, orgMiddleware, async(req: Request, res: Response) => {
+export const deleteWorkspace =  async(req: Request, res: Response) => {
     if(!req.user || !req.user.userId || !req.user.orgId || !req.user.orgRole){
         return res.status(401).json({message: "Unauthorised"});
     }
@@ -92,10 +89,10 @@ router.delete("/:workspaceId", AuthMiddleware, orgMiddleware, async(req: Request
         }
         console.log("Error deleting workspace with id: "+workspaceId+" by userId: "+userId, err);
         return res.status(500).json({message: "Internal server error"});
-    }
-});
+    }    
+}
 
-router.patch("/:workspaceId", AuthMiddleware, orgMiddleware, async(req: Request<workspaceUpdateParamsInterface,{},workspaceUpdateInterface>, res:Response) => {
+export const updateWorkspace = async(req: Request<workspaceUpdateParamsInterface,{},workspaceUpdateInterface>, res:Response) => {
     if(!req.user || !req.user.userId || !req.user.orgId || !req.user.orgRole){
         return res.status(401).json({message: "Unauthorised"});
     }
@@ -128,7 +125,5 @@ router.patch("/:workspaceId", AuthMiddleware, orgMiddleware, async(req: Request<
         }
         console.log("Error updating workspace with id: "+workspaceId+" to name: "+workspaceName+" by userId: "+userId, err);
         return res.status(500).json({message: "Internal server error"});
-    }
-});
-
-export default router;
+    }  
+}

@@ -1,10 +1,10 @@
 import express, { Express } from "express";
 import { poolClient } from "./db";
-import authRoutes from "./routes/auth.routes";
-import orgRoutes from "./routes/organizations.routes"
-import workspaceRoutes from "./routes/workspace.routes";
-import documentRoutes from "./routes/documents.routes";
-import membershipRoutes from "./routes/memberships.routes";
+import authRoutes from "./modules/auth/auth.routes";
+import orgRoutes from "./modules/organizations/organizations.routes"
+import workspaceRoutes from "./modules/workspaces/workspace.routes";
+import documentRoutes from "./modules/documents/documents.routes";
+import membershipRoutes from "./modules/memberships/memberships.routes";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 dotenv.config();

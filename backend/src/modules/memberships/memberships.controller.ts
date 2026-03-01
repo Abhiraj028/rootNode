@@ -1,14 +1,10 @@
-import { Router, Request, Response, NextFunction } from "express"
-import { AuthMiddleware } from "../middlewares/authMiddleware";
-import { orgMiddleware } from "../middlewares/orgMiddleware";
-import { poolClient } from "../db";
-import Roles from "../root";
-import { MembershipDeleteInterface, MembershipDeleteSchema, MembershipInviteInterface, MembershipInviteSchema, MembershipUpdateRoleInterface, MembershipUpdateRoleSchema } from "../interfaces/membershipInterfaces";
+import { Request, Response } from "express";
+import { poolClient } from "../../db";
+import Roles from "../../enum";
 import { DatabaseError } from "pg";
+import { MembershipDeleteInterface, MembershipDeleteSchema, MembershipInviteInterface, MembershipInviteSchema, MembershipUpdateRoleInterface, MembershipUpdateRoleSchema } from "./membershipInterfaces";
 
-const router = Router();
-
-router.get("/", AuthMiddleware, orgMiddleware, async(req: Request, res: Response) => {
+export const fetchMemberhsip = async(req: Request, res: Response) => {
     try{
         if(!req.user || !req.user.orgId) {
             return res.status(401).json({ message: "Unauthorized" });
@@ -21,10 +17,9 @@ router.get("/", AuthMiddleware, orgMiddleware, async(req: Request, res: Response
         console.log("Error fetching members: ", err);
         return res.status(500).json({ message: "Internal Server Error" });
     }
-    
-});
+}
 
-router.delete("/", AuthMiddleware, orgMiddleware, async(req: Request<{}, {}, MembershipDeleteInterface>, res: Response) => {
+export const deleteMembership = async(req: Request<{}, {}, MembershipDeleteInterface>, res: Response) => {
     if(!req.user || !req.user.orgId || !req.user.userId || !req.user.orgRole) {
         return res.status(401).json({ message: "Unauthorized" });
     }
@@ -56,10 +51,10 @@ router.delete("/", AuthMiddleware, orgMiddleware, async(req: Request<{}, {}, Mem
     }
     console.log(`Membership with id ${reqQuery.rows[0].id} marked as deleted by user ${userId} in org ${orgId}`);
     return res.status(200).json({ message: "Member removed successfully" });
-    
-});
+     
+}
 
-router.post("/invite", AuthMiddleware, orgMiddleware, async(req: Request<{}, {}, MembershipInviteInterface>, res: Response) => {
+export const inviteMembership = async(req: Request<{}, {}, MembershipInviteInterface>, res: Response) => {
     if(!req.user || !req.user.orgId || !req.user.userId || !req.user.orgRole) {
         return res.status(401).json({ message: "Unauthorized" });
     }
@@ -85,10 +80,10 @@ router.post("/invite", AuthMiddleware, orgMiddleware, async(req: Request<{}, {},
         }
         console.log("Error inviting member: ", err);
         return res.status(500).json({ message: "Internal Server Error" });
-    }
-});
+    }    
+}
 
-router.patch("/updateRole", AuthMiddleware, orgMiddleware ,async (req: Request<{},{},MembershipUpdateRoleInterface>, res: Response) => {
+export const updateMembership = async (req: Request<{},{},MembershipUpdateRoleInterface>, res: Response) => {
     
     try{
         if(!req.user || !req.user.orgId || !req.user.userId || !req.user.orgRole) {
@@ -127,7 +122,5 @@ router.patch("/updateRole", AuthMiddleware, orgMiddleware ,async (req: Request<{
     }catch(err){
         console.log("Error updating member role: ", err);
         return res.status(500).json({ message: "Internal Server Error" });
-    }
-});
-
-export default router;
+    }    
+}

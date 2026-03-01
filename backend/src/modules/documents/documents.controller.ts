@@ -1,15 +1,12 @@
-import { Request, Response, Router } from "express";
-import { createDocInterface, createDocParamsInterface, createDocSchema, deleteDocParamsInterface, updateDocInterface, updateDocParamsInterface, updateDocSchema } from "../interfaces/documentInterfaces";
-import { poolClient } from "../db";
+import { Request, Response } from "express";
+import { createDocInterface, createDocParamsInterface, createDocSchema, deleteDocParamsInterface, updateDocInterface, updateDocParamsInterface, updateDocSchema } from "./documentInterfaces";
+import { poolClient } from "../../db";
 import crypto from "crypto";
 import { DatabaseError } from "pg";
-import { orgMiddleware } from "../middlewares/orgMiddleware";
-import { AuthMiddleware } from "../middlewares/authMiddleware";
-import Roles from "../root";
+import Roles from "../../enum";
 
-const router = Router();
-
-router.post("/:workspaceId/:parentId?", AuthMiddleware ,orgMiddleware , async(req: Request<createDocParamsInterface,{}, createDocInterface>, res: Response) => {
+export const createDocument = async(req: Request<createDocParamsInterface,{}, createDocInterface>   , res: Response) => {
+    // Ensure auth middleware populated user context.
     if(!req.user || !req.user.userId || !req.user.orgId || !req.user.orgRole){
         return res.status(400).json({message: "Invalid user data in request"});
     }
@@ -21,6 +18,7 @@ router.post("/:workspaceId/:parentId?", AuthMiddleware ,orgMiddleware , async(re
     }
 
 
+    // Validate workspace and (optional) parent folder context.
     const workspaceId = Number(req.params.workspaceId);
 
     if(!Number.isInteger(workspaceId) || workspaceId <= 0){
@@ -40,6 +38,7 @@ router.post("/:workspaceId/:parentId?", AuthMiddleware ,orgMiddleware , async(re
     }
 
     if(parentId != null){
+        // Parent must exist within the same org/workspace.
         const parentCheck = await poolClient.query("select org_id from documents where id = $1 and workspace_id = $2", [parentId, workspaceId]);
         if(parentCheck.rowCount == 0 || parentCheck.rows[0].org_id != orgId){
             return res.status(403).json({message: "Forbidden"});
@@ -65,10 +64,10 @@ router.post("/:workspaceId/:parentId?", AuthMiddleware ,orgMiddleware , async(re
         console.log("Error occured in document creation. "+err);
         return res.status(500).json("Some error occured");
     }
-});
+}
 
-
-router.delete("/:workspaceId/:parentId?/:docId", AuthMiddleware, orgMiddleware, async(req: Request<deleteDocParamsInterface>, res: Response) => {
+export const deleteDocument = async(req: Request<deleteDocParamsInterface>, res: Response) => {
+    // Guard against missing auth context.
     if(!req.user || !req.user.userId || !req.user.orgId || !req.user.orgRole){
         return res.status(401).json({message: "Invalid user data in request"});
     }
@@ -86,6 +85,7 @@ router.delete("/:workspaceId/:parentId?/:docId", AuthMiddleware, orgMiddleware, 
     const {userId, orgId, orgRole} = req.user;
 
 
+    // Confirm document is in the org and check ownership for members.
     const docCheck = await poolClient.query("select org_id, created_by from documents where id = $1 and workspace_id = $2 and org_id = $3", [docId, workspaceId, orgId]);
     if(docCheck.rowCount == 0 || docCheck.rows[0].org_id != orgId){
         return res.status(403).json({message: "Forbidden"});
@@ -107,12 +107,12 @@ router.delete("/:workspaceId/:parentId?/:docId", AuthMiddleware, orgMiddleware, 
             return res.status(400).json({message: "Document has sub files, cannot be deleted"});
         }
         console.log("Error occured in document deletion. "+err);
-        return res.status(500).json("Some error occured");
-    }
+        return res.status(500).json({message: "Some error occured"});
+    }   
+}
 
-});
-
-router.get("/:workspaceId/:parentId?", AuthMiddleware, orgMiddleware, async(req: Request, res: Response) => {
+export const fetchDocuments = async(req: Request, res: Response) => {
+    // Auth required to scope results by org.
     if(!req.user){
         return res.status(401).json({message: "Invalid user data in request"});
     }
@@ -127,19 +127,21 @@ router.get("/:workspaceId/:parentId?", AuthMiddleware, orgMiddleware, async(req:
 
     try{
         if(paramsParentId == null){
+            // Root-level documents for the workspace.
             const docQuery = await poolClient.query("select * from documents where workspace_id = $1 and parent_id is null and org_id = $2", [paramsWorkspaceId, orgId]);
             return res.status(200).json({message: "Documents fetched successfully", data: docQuery.rows});
         }
+        // Children of a specific parent document.
         const docQuery = await poolClient.query("select * from documents where workspace_id = $1 and parent_id = $2 and org_id = $3", [paramsWorkspaceId, paramsParentId, orgId]);
         return res.status(200).json({message: "Documents fetched successfully", data: docQuery.rows});
     }catch(err){
         console.log("Error occured in fetching documents. "+err);
         return res.status(500).json({message: "Some error occured"});
-    }
-});
+    }   
+}
 
-
-router.patch("/:workspaceId/:parentId?/:docId", AuthMiddleware, orgMiddleware, async(req: Request<updateDocParamsInterface, {}, updateDocInterface>, res:Response) => {
+export const updateDocument = async(req: Request<updateDocParamsInterface, {}, updateDocInterface>, res:Response) => {
+    // Auth required to enforce org and ownership checks.
     if(!req.user){
         return res.status(401).json({message: "Invalid user data in request"});
     }
@@ -159,6 +161,7 @@ router.patch("/:workspaceId/:parentId?/:docId", AuthMiddleware, orgMiddleware, a
 
     let {name, title, content} = parsedData.data;
 
+    // Validate document ownership for members.
     const userCheck = await poolClient.query("select created_by from documents where id = $1 and org_id = $2 and workspace_id = $3", [numDocumentId, orgId, numWorkspaceId]);
     if(userCheck.rowCount == 0){
         return res.status(404).json({message: "Document not found"});
@@ -173,6 +176,7 @@ router.patch("/:workspaceId/:parentId?/:docId", AuthMiddleware, orgMiddleware, a
         const values = [];
         let index = 1;
 
+        // Build a partial update based on provided fields.
         if (name !== undefined) {
         updates.push(`name = $${index++}`);
         values.push(name);
@@ -211,6 +215,4 @@ router.patch("/:workspaceId/:parentId?/:docId", AuthMiddleware, orgMiddleware, a
         console.log("Error occured in document update. "+err);
         return res.status(500).json({message: "Some error occured"});
     }
-});
-
-export default router;
+}
