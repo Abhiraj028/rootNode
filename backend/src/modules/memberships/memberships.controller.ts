@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { poolClient } from "../../db";
-import Roles from "../../enum";
+import Roles from "../../shared/enum";
 import { DatabaseError } from "pg";
 import { MembershipDeleteInterface, MembershipDeleteSchema, MembershipInviteInterface, MembershipInviteSchema, MembershipUpdateRoleInterface, MembershipUpdateRoleSchema } from "./membershipInterfaces";
 

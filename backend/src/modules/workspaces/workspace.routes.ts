@@ -1,16 +1,16 @@
 import { Router } from "express";
 import { orgMiddleware } from "../../middlewares/orgMiddleware";
 import { AuthMiddleware } from "../../middlewares/authMiddleware";
-import { createWorkspace, deleteWorkspace, fetchWorkspace, updateWorkspace } from "./workspaces.controller";
+import { createWorkspace, deleteWorkspace, fetchWorkspace, updateWorkspace } from "./workspace.controllers";
 
 const router = Router();
 
-router.post("/", AuthMiddleware ,orgMiddleware , createWorkspace);
+router.post("/:orgId", AuthMiddleware ,orgMiddleware , createWorkspace);
 
-router.get("/", AuthMiddleware, orgMiddleware, fetchWorkspace);
+router.get("/:orgId", AuthMiddleware, orgMiddleware, fetchWorkspace);
 
-router.delete("/:workspaceId", AuthMiddleware, orgMiddleware, deleteWorkspace);
+router.delete("/:orgId/:workspaceId", AuthMiddleware, orgMiddleware, deleteWorkspace);
 
-router.patch("/:workspaceId", AuthMiddleware, orgMiddleware, updateWorkspace);
+router.patch("/:orgId/:workspaceId", AuthMiddleware, orgMiddleware, updateWorkspace);
 
 export default router;

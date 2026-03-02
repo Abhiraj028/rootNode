@@ -3,7 +3,7 @@ import { createDocInterface, createDocParamsInterface, createDocSchema, deleteDo
 import { poolClient } from "../../db";
 import crypto from "crypto";
 import { DatabaseError } from "pg";
-import Roles from "../../enum";
+import Roles from "../../shared/enum";
 
 export const createDocument = async(req: Request<createDocParamsInterface,{}, createDocInterface>   , res: Response) => {
     // Ensure auth middleware populated user context.

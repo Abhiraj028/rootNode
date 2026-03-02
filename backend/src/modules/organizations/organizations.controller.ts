@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { createOrgInterface, createOrgSchema, updateOrgInterface, updateOrgSchema } from "./orgInterfaces";
 import { poolClient } from "../../db";
 import { DatabaseError } from "pg";
-import Roles from "../../enum";
+import Roles from "../../shared/enum";
 
 export const createOrganization = async(req:Request<{},{}, createOrgInterface>, res:Response) => {
     if(!req.user || !req.user.userId){
