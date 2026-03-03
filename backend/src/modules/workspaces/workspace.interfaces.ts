@@ -1,4 +1,5 @@
 import z from "zod";
+import Roles from "../../shared/enum";
 
 export const workspaceCreationSchema = z.object({
     name: z.string().max(100, "Workspace name should be less than 100 characters").trim()
@@ -18,3 +19,24 @@ export const workspaceDeleteParams = z.object({
 export type workspaceDeleteParamsInterface = z.infer<typeof workspaceDeleteParams>;
 export type workspaceFetchParamsInterface = z.infer<typeof workspaceDeleteParams>;
 export type workspaceUpdateParamsInterface = z.infer<typeof workspaceDeleteParams>;
+
+export interface workspaceCreateServiceInterface {
+    userId : number;
+    orgId : number;
+    orgRole : string;
+    createBody : workspaceCreationInterface;
+}
+
+export interface workspaceDeleteServiceInterface {
+    userId : number;
+    orgId : number;
+    orgRole : string;
+    workspaceId : string;
+}
+
+export interface workspaceUpdateServiceInterface {
+    orgId : number;
+    orgRole : string;
+    workspaceId : string;
+    updateBody : workspaceUpdateInterface;
+}

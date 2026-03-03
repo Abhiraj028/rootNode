@@ -1,15 +1,16 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { UnauthorizedError } from "../shared/errors";
 
 export const AuthMiddleware = (req:Request,res:Response, next: NextFunction) => {
     const authHeader = req.headers.authorization;
     if(!authHeader || !authHeader.startsWith("Bearer ")){
         console.log("Invalid auth Header detected");
-        return res.status(401).json({message:"Unauthorised"});
+        throw new UnauthorizedError("Unauthorised");
     }
     const headerToken = authHeader.split(" ")[1];
     if(!headerToken){
-        return res.status(401).json({message: "Unauthorised"});
+        throw new UnauthorizedError("Unauthorised");
     }
     try{
         const verifyToken = jwt.verify(headerToken, process.env.JWT_SECRET!) as {
@@ -21,6 +22,6 @@ export const AuthMiddleware = (req:Request,res:Response, next: NextFunction) => 
         next();
     }catch(err){
         console.log("invalid token");
-        return res.status(401).json({message:"Invalid token"});
+        throw new UnauthorizedError("Unauthorised");
     }
 }

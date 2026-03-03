@@ -7,6 +7,7 @@ import documentRoutes from "./modules/documents/documents.routes";
 import membershipRoutes from "./modules/memberships/memberships.routes";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
+import { errorMiddleware } from "./middlewares/errorMiddleware";
 
 dotenv.config();
 
@@ -20,4 +21,4 @@ app.use("/api/v1/org", orgRoutes);
 app.use("/api/v1/workspace", workspaceRoutes);
 app.use("/api/v1/document", documentRoutes);
 app.use("/api/v1/membership", membershipRoutes);
-
+app.use(errorMiddleware);

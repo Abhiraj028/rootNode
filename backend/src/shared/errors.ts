@@ -3,6 +3,8 @@ export class AppError extends Error {
     constructor(message: string, status: number){
         super(message);
         this.status = status;
+        this.name = this.constructor.name;
+        Error.captureStackTrace(this, this.constructor);
     }
 }
 
@@ -33,5 +35,11 @@ export class NotFoundError extends AppError {
 export class ServerError extends AppError {
     constructor(message: string){
         super(message, 500);
+    }
+}
+
+export class ConflictError extends AppError {
+    constructor(message: string){
+        super(message, 409);
     }
 }
