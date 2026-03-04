@@ -14,3 +14,15 @@ export const updateOrgSchema = z.object({
 });
 
 export type updateOrgInterface = z.infer<typeof updateOrgSchema>;
+
+export interface createOrgServiceInterface {
+    userId: number;
+    createBody: createOrgInterface;
+}
+
+export interface updateOrgServiceInterface {
+    userId: number;
+    orgId: number;
+    orgRole: string;
+    updateBody: updateOrgInterface;
+}
