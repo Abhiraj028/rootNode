@@ -14,3 +14,24 @@ export type MembershipUpdateRoleInterface = z.infer<typeof MembershipUpdateRoleS
 
 export const MembershipInviteSchema = MembershipUpdateRoleSchema;
 export type MembershipInviteInterface = z.infer<typeof MembershipInviteSchema>;
+
+export interface deleteMembershipServiceInterface {
+    userId: number;
+    orgId: number;
+    orgRole: string;
+    updateBody: MembershipDeleteInterface;
+}
+
+export interface inviteMembershipServiceInterface {
+    userId: number;
+    orgId: number;
+    orgRole: string;
+    inviteBody: MembershipInviteInterface;
+}
+
+export interface updateMembershipServiceInterface {
+    userId: number;
+    orgId: number;
+    orgRole: string;
+    updateBody: MembershipUpdateRoleInterface;
+}
