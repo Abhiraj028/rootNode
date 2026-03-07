@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { poolClient } from "../db";
-import { BadRequestError, ForbiddenError, ServerError, UnauthorizedError } from "../shared/errors";
+import { AppError, BadRequestError, ForbiddenError, ServerError, UnauthorizedError } from "../shared/errors";
 
 
 export const orgMiddleware = async (req: Request, res: Response, next: NextFunction)  => {
@@ -26,6 +26,10 @@ export const orgMiddleware = async (req: Request, res: Response, next: NextFunct
         next();
 
     }catch(err){
+        if(err instanceof AppError){
+            console.log("Error in organization middleware", err);
+            throw err;
+        }
         console.log("Error in organization middleware", err);
         throw new ServerError("Internal server error");
     }
