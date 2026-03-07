@@ -1,16 +1,17 @@
 import { Router } from "express"
 import { AuthMiddleware } from "../../middlewares/authMiddleware";
 import { orgMiddleware } from "../../middlewares/orgMiddleware";
-import { deleteMembership, fetchMemberhsip, inviteMembership, updateMembership } from "./memberships.controller";
+import { deleteMembership, fetchMembership, inviteMembership, updateMembership } from "./memberships.controller";
+import { errorHandler } from "../../shared/errorHandler";
 
 const router = Router();
 
-router.get("/", AuthMiddleware, orgMiddleware, fetchMemberhsip);
+router.get("/:orgId", AuthMiddleware, orgMiddleware, errorHandler(fetchMembership));
 
-router.delete("/", AuthMiddleware, orgMiddleware, deleteMembership);
+router.delete("/:orgId", AuthMiddleware, orgMiddleware, errorHandler(deleteMembership));
 
-router.post("/invite", AuthMiddleware, orgMiddleware, inviteMembership);
+router.post("/:orgId/invite", AuthMiddleware, orgMiddleware, errorHandler(inviteMembership));
 
-router.patch("/updateRole", AuthMiddleware, orgMiddleware , updateMembership);
+router.patch("/:orgId/updateRole", AuthMiddleware, orgMiddleware , errorHandler(updateMembership));
 
 export default router;

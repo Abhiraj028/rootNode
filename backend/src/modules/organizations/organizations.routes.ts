@@ -10,8 +10,8 @@ router.get("/", AuthMiddleware, errorHandler(fetchOrganization));
 
 router.post("/", AuthMiddleware , errorHandler(createOrganization));
 
-router.delete("/", AuthMiddleware, orgMiddleware, errorHandler(deleteOrganization));
+router.delete("/:orgId", AuthMiddleware, orgMiddleware, errorHandler(deleteOrganization));
 
-router.patch("/update", AuthMiddleware, orgMiddleware, errorHandler(updateOrganization));
+router.patch("/:orgId/update", AuthMiddleware, orgMiddleware, errorHandler(updateOrganization));
 
 export default router;

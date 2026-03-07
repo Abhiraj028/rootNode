@@ -2,16 +2,16 @@ import { Router } from "express";
 import { orgMiddleware } from "../../middlewares/orgMiddleware";
 import { AuthMiddleware } from "../../middlewares/authMiddleware";
 import { createDocument, deleteDocument, fetchDocuments, updateDocument } from "./documents.controller";
+import { errorHandler } from "../../shared/errorHandler";
 
 const router = Router();
 
-router.post("/:workspaceId/:parentId?", AuthMiddleware ,orgMiddleware , createDocument);
+router.post("/:orgId/:workspaceId/:parentId?", AuthMiddleware ,orgMiddleware , errorHandler(createDocument));
 
-router.delete("/:workspaceId/:parentId?/:docId", AuthMiddleware, orgMiddleware, deleteDocument);
+router.delete("/:orgId/:workspaceId/:parentId?/:docId", AuthMiddleware, orgMiddleware, errorHandler(deleteDocument));
 
-router.get("/:workspaceId/:parentId?", AuthMiddleware, orgMiddleware, fetchDocuments);
+router.get("/:orgId/:workspaceId/:parentId?", AuthMiddleware, orgMiddleware, errorHandler(fetchDocuments));
 
-router.patch("/:workspaceId/:parentId?/:docId", AuthMiddleware, orgMiddleware, updateDocument);
-
+router.patch("/:orgId/:workspaceId/:parentId?/:docId", AuthMiddleware, orgMiddleware, errorHandler(updateDocument));
 
 export default router;
