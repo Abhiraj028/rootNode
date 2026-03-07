@@ -3,3 +3,7 @@ export interface userRequestInterface {
     orgId: number;
     orgRole: string;
 }
+
+export interface userCheckInterface {
+    userId: number;
+}
