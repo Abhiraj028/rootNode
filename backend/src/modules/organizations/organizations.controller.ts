@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
 import { createOrgInterface, updateOrgInterface } from "./orgInterfaces";
-import { reqCheck } from "../../shared/services";
+import { reqCheck, userCheck } from "../../shared/services";
 import { createOrgService, deleteOrgService, fetchOrgService, updateOrgService } from "./organizations.services";
 
 export const createOrganization = async(req:Request<{},{}, createOrgInterface>, res:Response) => {
-    const { userId } = reqCheck(req.user);
+    const { userId } = userCheck(req.user);
 
     const createBody = req.body;
     const createOrgServiceCall = await createOrgService({userId, createBody});
@@ -13,8 +13,8 @@ export const createOrganization = async(req:Request<{},{}, createOrgInterface>, 
 }
 
 export const fetchOrganization = async(req: Request, res: Response) => {
-    const { userId } = reqCheck(req.user); 
-    
+    const { userId } = userCheck(req.user);
+
     const fetchOrgServiceCall = await fetchOrgService(userId);
 
     return res.status(200).json({message: "Organizations fetched successfully", data: fetchOrgServiceCall});
