@@ -14,9 +14,9 @@ export const orgMiddleware = async (req: Request, res: Response, next: NextFunct
         }
         const userId = req.user.userId;
 
-        const roleQuery = await poolClient.query("select role from memberships where org_id = $1 and user_id = $2", [orgId, req.user.userId])
+        const roleQuery = await poolClient.query("select role from memberships where org_id = $1 and user_id = $2 and deleted_at is null", [orgId, userId])
         if(roleQuery.rowCount == 0){
-            console.log("User with given org not found. UserId: "+req.user.userId+" orgId: "+orgId);
+            console.log("User with given org not found. UserId: "+userId+" orgId: "+orgId);
             throw new ForbiddenError("Forbidden access");
         }
 
