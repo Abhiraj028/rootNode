@@ -10,7 +10,7 @@ export type createDocInterface = z.infer<typeof createDocSchema>;
 
 export type createDocParamsInterface = {
     parentId?: string;
-    workspaceId?: string;
+    workspaceId: string;
 }
 
 export type deleteDocParamsInterface = {
@@ -24,7 +24,7 @@ export type updateDocParamsInterface = {
     parentId? : string;
 };
 
-export type getDocParamsInterface = createDocParamsInterface;
+export type fetchDocParamsInterface = createDocParamsInterface;
 
 export const updateDocSchema = z.object({
     name: z.string().min(1, "Document name cannot be empty").max(100, "Document name should be less than 100 characters").trim().optional(),
@@ -33,3 +33,35 @@ export const updateDocSchema = z.object({
 });
 
 export type updateDocInterface = z.infer<typeof updateDocSchema>;
+
+export interface createDocServiceInterface {
+    userId: number;
+    orgId: number;
+    parentId: string;
+    workspaceId: string;
+    createBody: createDocInterface;
+}
+
+export interface fetchDocServiceInterface {
+    orgId: number;
+    workspaceId: string;
+    parentId: string;
+}
+
+export interface deleteDocInterface {
+    userId: number;
+    orgId: number;
+    orgRole: string;
+    workspaceId: string;
+    docId: string;
+}
+
+export interface updateDocServiceInterface {
+    userId: number;
+    orgId: number;
+    orgRole: string;
+    workspaceId: string;
+    docId: string;
+    parentId: string;
+    updateBody: updateDocInterface;
+}
