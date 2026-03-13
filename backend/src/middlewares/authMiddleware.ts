@@ -16,6 +16,12 @@ export const AuthMiddleware = (req:Request,res:Response, next: NextFunction) => 
         const verifyToken = jwt.verify(headerToken, process.env.JWT_SECRET!) as {
             sub: string
         };
+
+        if(!Number.isInteger(Number(verifyToken.sub)) || Number(verifyToken.sub) <= 0){
+            console.log("Invalid token sub detected", verifyToken.sub);
+            throw new UnauthorizedError("Unauthorised");
+        }
+
         req.user = {
             userId: Number(verifyToken.sub)
         }

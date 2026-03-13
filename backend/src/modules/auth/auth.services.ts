@@ -45,7 +45,7 @@ export async function logInService(loginBody : LoginRequest){
     }
 
     try{
-        const userCheck = await poolClient.query("select * from users where email = $1", [parsedBody.data.email.toLowerCase()]);
+        const userCheck = await poolClient.query("select * from users where email = $1 and deleted_at is null", [parsedBody.data.email.toLowerCase()]);
         if(userCheck.rowCount == 0){
             console.log("No user found with email", parsedBody.data.email);
             throw new BadRequestError("Invalid credentials entered");
@@ -91,7 +91,6 @@ export async function refreshCallService(fetchedToken: string){
         const tokenCheck = await queryClient.query("select * from token_table where token_hash = $1 and expires_at > now() for update",[hashedToken]);
         if(tokenCheck.rowCount == 0){
             console.log("No matching refresh token found in the database");
-            await queryClient.query("rollback");
             throw new UnauthorizedError("Unauthorized");
         }
         const userFetched = tokenCheck.rows[0];
